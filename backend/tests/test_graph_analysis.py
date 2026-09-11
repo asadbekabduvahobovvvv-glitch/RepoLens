@@ -90,3 +90,30 @@ def test_risk_levels():
     assert risk_level(0) == "LOW"
     assert risk_level(2) == "MEDIUM"
     assert risk_level(5) == "HIGH"
+
+
+def test_nested_python_import_resolution():
+    files = [
+        "test_repo/src/auth.py",
+        "test_repo/main.py",
+    ]
+
+    analysis = {
+        "test_repo/src/auth.py": {
+            "imports": []
+        },
+        "test_repo/main.py": {
+            "imports": [
+                "src.auth.login"
+            ]
+        },
+    }
+
+    graph = build_dependency_graph(
+        files,
+        analysis,
+    )
+
+    assert graph["test_repo/main.py"] == [
+        "test_repo/src/auth.py"
+    ]

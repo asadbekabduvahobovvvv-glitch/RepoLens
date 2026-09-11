@@ -683,6 +683,42 @@ async def upload_file(
 
                 tree = build_tree(filenames)
 
+                from app.graph_analysis import (
+                    build_dependency_graph,
+                    critical_files,
+                    detect_cycles,
+                    risk_level,
+                    transitive_dependents,
+                )
+
+                dependency_graph = build_dependency_graph(
+                    source_files,
+                    python_analysis,
+                )
+
+                critical_file_ranking = critical_files(
+                    dependency_graph
+                )
+
+                circular_dependencies = detect_cycles(
+                    dependency_graph
+                )
+
+                impact_analysis = {}
+
+                for source_file in source_files:
+                    affected_files = transitive_dependents(
+                        dependency_graph,
+                        source_file,
+                    )
+
+                    impact_analysis[source_file] = {
+                        "affected_files": affected_files,
+                        "impact_count": len(affected_files),
+                        "risk_level": risk_level(len(affected_files)),
+                    }
+
+
         except BadZipFile as exc:
             raise HTTPException(
                 status_code=400,
@@ -697,6 +733,10 @@ async def upload_file(
             "source_file_count": len(source_files),
             "source_files": source_files,
             "python_analysis": python_analysis,
+        "dependency_graph": dependency_graph,
+        "critical_files": critical_file_ranking,
+        "circular_dependencies": circular_dependencies,
+        "impact_analysis": impact_analysis,
             "files": filenames,
             "tree": tree,
         }
