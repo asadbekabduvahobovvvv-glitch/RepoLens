@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import './onboarding.css'
+import './theme.css'
 import {
   LANGUAGES,
   translate,
@@ -239,13 +241,55 @@ function App() {
   )
 
   const [languageOpen, setLanguageOpen] = useState(false)
+  const [themeOpen, setThemeOpen] = useState(false)
+  const [themePreference, setThemePreference] = useState(
+    () => localStorage.getItem('repolens-theme') || 'system'
+  )
+  const [systemTheme, setSystemTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  })
 
   const t = (key, variables = {}) => translate(language, key, variables)
+
+  const activeTheme =
+    themePreference === 'system'
+      ? systemTheme
+      : themePreference
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = activeTheme
+  }, [activeTheme])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateSystemTheme = (event) => {
+      setSystemTheme(event.matches ? 'dark' : 'light')
+    }
+
+    setSystemTheme(media.matches ? 'dark' : 'light')
+    media.addEventListener?.('change', updateSystemTheme)
+
+    return () => {
+      media.removeEventListener?.('change', updateSystemTheme)
+    }
+  }, [])
+
+  const changeTheme = (nextTheme) => {
+    setThemePreference(nextTheme)
+    localStorage.setItem('repolens-theme', nextTheme)
+    setThemeOpen(false)
+  }
 
   const changeLanguage = (nextLanguage) => {
     setLanguage(nextLanguage)
     localStorage.setItem('repolens-language', nextLanguage)
     setLanguageOpen(false)
+    setThemeOpen(false)
   }
 
   const [uploadFile, setUploadFile] = useState(null)
@@ -321,6 +365,51 @@ function App() {
       }))
       .sort((a, b) => b.count - a.count)
   }, [sourceFiles])
+
+  const onboardingFiles = useMemo(() => {
+    const entryNames = new Set([
+      'main.py', 'app.py', 'server.py', 'manage.py',
+      'index.js', 'index.jsx', 'index.ts', 'index.tsx',
+      'main.js', 'main.jsx', 'main.ts', 'main.tsx',
+    ])
+
+    const isEntryFile = (file) =>
+      entryNames.has(shortName(file).toLowerCase())
+
+    const entryFiles = sourceFiles.filter(isEntryFile)
+    const rankedFiles = criticalFiles.map((item) => item.file)
+    const candidates = [...entryFiles, ...rankedFiles, ...sourceFiles]
+    const seen = new Set()
+
+    return candidates
+      .filter((file) => {
+        if (!file || seen.has(file)) return false
+        seen.add(file)
+        return true
+      })
+      .slice(0, 6)
+      .map((file) => {
+        const critical = criticalFiles.find((item) => item.file === file)
+        const impact =
+          impactAnalysis[file]?.impact_count ??
+          critical?.total_impact ??
+          0
+        const dependencies = data?.dependency_graph?.[file]?.length || 0
+
+        let reasonKey = 'onboardingExploreReason'
+        if (isEntryFile(file)) reasonKey = 'onboardingEntryReason'
+        else if ((critical?.score || 0) > 0) reasonKey = 'onboardingCriticalReason'
+        else if (impact > 0) reasonKey = 'onboardingImpactReason'
+
+        return {
+          file,
+          impact,
+          dependencies,
+          score: critical?.score || 0,
+          reasonKey,
+        }
+      })
+  }, [sourceFiles, criticalFiles, impactAnalysis, data])
 
   const activeFile =
     focusFile ||
@@ -403,11 +492,64 @@ function App() {
         </div>
 
         <div className="topbar-right">
+          <div className="theme-selector">
+            <button
+              className="theme-button"
+              type="button"
+              aria-label={t('themeLabel')}
+              title={t('themeLabel')}
+              onClick={() => {
+                setThemeOpen(!themeOpen)
+                setLanguageOpen(false)
+              }}
+            >
+              <span className="theme-icon">
+                {activeTheme === 'dark' ? '☾' : '☀'}
+              </span>
+              <strong>
+                {themePreference === 'system'
+                  ? t('themeSystem')
+                  : themePreference === 'dark'
+                    ? t('themeDark')
+                    : t('themeLight')}
+              </strong>
+              <span className="theme-chevron">▾</span>
+            </button>
+
+            {themeOpen && (
+              <div className="theme-menu">
+                {[
+                  ['system', '◐', t('themeSystem')],
+                  ['dark', '☾', t('themeDark')],
+                  ['light', '☀', t('themeLight')],
+                ].map(([value, icon, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      themePreference === value
+                        ? 'theme-active'
+                        : ''
+                    }
+                    onClick={() => changeTheme(value)}
+                  >
+                    <span>{icon}</span>
+                    <strong>{label}</strong>
+                    {themePreference === value && <b>✓</b>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="language-selector">
             <button
               className="language-button"
               type="button"
-              onClick={() => setLanguageOpen(!languageOpen)}
+              onClick={() => {
+                setLanguageOpen(!languageOpen)
+                setThemeOpen(false)
+              }}
             >
               <span>{LANGUAGES[language].flag}</span>
               <strong>{LANGUAGES[language].short}</strong>
@@ -468,6 +610,11 @@ function App() {
             <p>
               {t('heroDescription')}
             </p>
+
+            <div className="hero-tagline">
+              <span>✦</span>
+              <strong>{t('tagline')}</strong>
+            </div>
           </div>
 
           <div className="hero-badge">
@@ -614,16 +761,18 @@ function App() {
 
             <nav className="tabs">
               {[
-                ['overview', t('overview')],
-                ['code', t('codeIntelligence')],
-                ['impact', t('impactAnalysis')],
-              ].map(([id, label]) => (
+                ['overview', '◫', t('overview')],
+                ['onboarding', '→', t('onboarding')],
+                ['code', '</>', t('codeIntelligence')],
+                ['impact', '⚡', t('impactAnalysis')],
+              ].map(([id, icon, label]) => (
                 <button
                   key={id}
                   type="button"
                   className={tab === id ? 'active' : ''}
                   onClick={() => setTab(id)}
                 >
+                  <span className="tab-icon">{icon}</span>
                   {label}
                 </button>
               ))}
@@ -860,6 +1009,96 @@ function App() {
               </section>
             )}
 
+            {tab === 'onboarding' && (
+              <section className="onboarding-layout">
+                <div className="panel onboarding-intro">
+                  <div className="onboarding-kicker">{t('onboardingEyebrow')}</div>
+                  <h3>{t('onboardingTitle')}</h3>
+                  <p>{t('onboardingDescription')}</p>
+
+                  <div className="onboarding-stats">
+                    <div>
+                      <strong>{onboardingFiles.length}</strong>
+                      <span>{t('onboardingSuggestedFiles')}</span>
+                    </div>
+                    <div>
+                      <strong>{criticalFiles.filter((item) => item.score > 0).length}</strong>
+                      <span>{t('onboardingCriticalCount')}</span>
+                    </div>
+                    <div>
+                      <strong>{circularDependencies.length}</strong>
+                      <span>{t('onboardingCycleCount')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="panel onboarding-list-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span>{t('onboardingReadOrder')}</span>
+                      <h3>{t('onboardingReadOrderTitle')}</h3>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-steps">
+                    {onboardingFiles.map((item, index) => (
+                      <div className="onboarding-step" key={item.file}>
+                        <div className="onboarding-step-number">
+                          {String(index + 1).padStart(2, '0')}
+                        </div>
+
+                        <div className="onboarding-step-copy">
+                          <div>
+                            <strong>{shortName(item.file)}</strong>
+                            <small>{item.file}</small>
+                          </div>
+                          <p>
+                            {t(item.reasonKey, {
+                              impact: item.impact,
+                              deps: item.dependencies,
+                            })}
+                          </p>
+                        </div>
+
+                        <div className="onboarding-step-meta">
+                          <span>{t('onboardingImpactBadge', { count: item.impact })}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFocusFile(item.file)
+                              setTab('code')
+                            }}
+                          >
+                            {t('inspectFile')}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="panel onboarding-path-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span>{t('onboardingPath')}</span>
+                      <h3>{t('onboardingPathTitle')}</h3>
+                    </div>
+                  </div>
+
+                  <div className="onboarding-path">
+                    {onboardingFiles.slice(0, 4).map((item, index) => (
+                      <div className="onboarding-path-item" key={item.file}>
+                        <span>{shortName(item.file)}</span>
+                        {index < Math.min(onboardingFiles.length, 4) - 1 && <b>→</b>}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p>{t('onboardingPathText')}</p>
+                </div>
+              </section>
+            )}
+
             {tab === 'impact' && (
               <section className="impact-layout">
                 <div className="panel impact-selector">
@@ -1000,12 +1239,34 @@ function App() {
         )}
       </main>
 
-      <footer>
-        <span>RepoLens</span>
-        <p>
-          {t('footerText')}
-        </p>
-        <b>FastAPI · React · AST · Docker</b>
+      <footer className="site-footer">
+        <div className="footer-brand">
+          <span>RepoLens</span>
+          <p>{t('footerText')}</p>
+        </div>
+
+        <div className="footer-motto">
+          <small>✦</small>
+          <strong>{t('tagline')}</strong>
+        </div>
+
+        <div className="footer-links">
+          <a
+            href="https://github.com/asadbekabduvahobovvvv-glitch/RepoLens"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('repositoryLink')} ↗
+          </a>
+          <a
+            href="https://github.com/asadbekabduvahobovvvv-glitch"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('contact')} ↗
+          </a>
+          <b>FastAPI · React · AST · Docker</b>
+        </div>
       </footer>
     </div>
   )
