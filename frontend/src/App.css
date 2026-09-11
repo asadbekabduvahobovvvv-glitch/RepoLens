@@ -1005,3 +1005,87 @@ footer b {
 .architecture-danger > span {
   background: rgba(255, 105, 120, 0.1);
 }
+
+.language-selector {
+  position: relative;
+}
+
+.language-button {
+  height: 36px;
+  min-width: 78px;
+  padding: 0 10px;
+  border: 1px solid #29313e;
+  border-radius: 9px;
+  background: #0e131b;
+  color: #dbe3ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.language-button:hover {
+  background: #151b25;
+  border-color: #435064;
+}
+
+.language-button strong {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.language-chevron {
+  color: #687487;
+  font-size: 9px;
+}
+
+.language-menu {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  width: 190px;
+  padding: 7px;
+  border: 1px solid #29313e;
+  border-radius: 12px;
+  background: #0c1017;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+.language-menu button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #abb5c4;
+  padding: 9px 10px;
+  display: grid;
+  grid-template-columns: 25px 1fr 18px;
+  align-items: center;
+  text-align: left;
+}
+
+.language-menu button:hover,
+.language-menu button.language-active {
+  background: #151b25;
+  color: white;
+}
+
+.language-menu button > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.language-menu strong {
+  font-size: 10px;
+}
+
+.language-menu small {
+  margin-top: 2px;
+  color: #606d7f;
+  font-size: 8px;
+}
+
+.language-menu b {
+  color: #5f7aff;
+}

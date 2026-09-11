@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react'
 import './App.css'
+import {
+  LANGUAGES,
+  translate,
+} from './i18n'
 
 const EXTENSIONS = {
   py: 'Python',
@@ -230,6 +234,20 @@ function DependencyGraph({ files, analysis }) {
 }
 
 function App() {
+  const [language, setLanguage] = useState(
+    () => localStorage.getItem('repolens-language') || 'en'
+  )
+
+  const [languageOpen, setLanguageOpen] = useState(false)
+
+  const t = (key) => translate(language, key)
+
+  const changeLanguage = (nextLanguage) => {
+    setLanguage(nextLanguage)
+    localStorage.setItem('repolens-language', nextLanguage)
+    setLanguageOpen(false)
+  }
+
   const [uploadFile, setUploadFile] = useState(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -380,14 +398,48 @@ function App() {
           <div className="brand-mark">R</div>
           <div>
             <strong>RepoLens</strong>
-            <span>Repository Intelligence</span>
+            <span>{t("repositoryIntelligence")}</span>
           </div>
         </div>
 
         <div className="topbar-right">
+          <div className="language-selector">
+            <button
+              className="language-button"
+              type="button"
+              onClick={() => setLanguageOpen(!languageOpen)}
+            >
+              <span>{LANGUAGES[language].flag}</span>
+              <strong>{LANGUAGES[language].short}</strong>
+              <span className="language-chevron">▾</span>
+            </button>
+
+            {languageOpen && (
+              <div className="language-menu">
+                {Object.entries(LANGUAGES).map(([code, item]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className={language === code ? 'language-active' : ''}
+                    onClick={() => changeLanguage(code)}
+                  >
+                    <span>{item.flag}</span>
+
+                    <div>
+                      <strong>{item.label}</strong>
+                      <small>{item.short}</small>
+                    </div>
+
+                    {language === code && <b>✓</b>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <span className="status-dot">
             <i />
-            Analysis engine
+            {t("analysisEngine")}
           </span>
 
           <a
