@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+*.log
+
+test_repo/
+test_repo.zip
+
+.vscode/
+.DS_Store
