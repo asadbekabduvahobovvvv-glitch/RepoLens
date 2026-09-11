@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import './onboarding.css'
 import './theme.css'
+import './interaction.css'
 import {
   LANGUAGES,
   translate,
@@ -21,6 +22,34 @@ const EXTENSIONS = {
   cs: 'C#',
   php: 'PHP',
   rb: 'Ruby',
+}
+
+
+const INTERACTION_TEXT = {
+  en: {
+    tryDemo: 'Try demo',
+    demoLoading: 'Loading demo…',
+    demoHint: 'No repository ready? Launch a built-in sample project.',
+    graphHint: 'Click a node to highlight its direct architecture relationships.',
+  },
+  uz: {
+    tryDemo: 'Demoni sinash',
+    demoLoading: 'Demo yuklanmoqda…',
+    demoHint: "Repozitoriy tayyor emasmi? Ichki namuna loyiha bilan sinab ko'ring.",
+    graphHint: "Bog'lanishlarni ajratib ko'rsatish uchun grafdagi faylni bosing.",
+  },
+  de: {
+    tryDemo: 'Demo testen',
+    demoLoading: 'Demo wird geladen…',
+    demoHint: 'Kein Repository bereit? Starte das integrierte Beispielprojekt.',
+    graphHint: 'Klicke auf einen Knoten, um seine direkten Beziehungen hervorzuheben.',
+  },
+  ru: {
+    tryDemo: 'Запустить демо',
+    demoLoading: 'Демо загружается…',
+    demoHint: 'Нет готового репозитория? Запустите встроенный пример.',
+    graphHint: 'Нажмите на узел, чтобы выделить его прямые связи.',
+  },
 }
 
 function shortName(path = '') {
@@ -112,9 +141,18 @@ function MetricCard({ label, value, detail }) {
   )
 }
 
-function DependencyGraph({ files, analysis, t }) {
+function DependencyGraph({
+  files,
+  analysis,
+  edges: suppliedEdges = [],
+  selectedFile,
+  onSelectFile,
+  t,
+}) {
   const nodes = (files || []).slice(0, 10)
-  const allEdges = buildEdges(files, analysis)
+  const allEdges = suppliedEdges.length
+    ? suppliedEdges
+    : buildEdges(files, analysis)
   const edges = allEdges.filter(
     (edge) =>
       nodes.includes(edge.source) &&
@@ -188,7 +226,15 @@ function DependencyGraph({ files, analysis, t }) {
               y1={start.y}
               x2={end.x}
               y2={end.y}
-              className="graph-edge"
+              className={
+                `graph-edge${
+                  selectedFile
+                    ? edge.source === selectedFile || edge.target === selectedFile
+                      ? ' graph-edge-active'
+                      : ' graph-edge-muted'
+                    : ''
+                }`
+              }
               markerEnd="url(#arrow)"
             />
           )
@@ -196,9 +242,38 @@ function DependencyGraph({ files, analysis, t }) {
 
         {nodes.map((file) => {
           const point = positions[file]
+          const isSelected = selectedFile === file
+          const isRelated = Boolean(
+            selectedFile &&
+            edges.some(
+              (edge) =>
+                (edge.source === selectedFile && edge.target === file) ||
+                (edge.target === selectedFile && edge.source === file),
+            )
+          )
+          const isMuted = Boolean(
+            selectedFile && !isSelected && !isRelated
+          )
 
           return (
-            <g key={file}>
+            <g
+              key={file}
+              className={`graph-node-group${
+                isSelected ? ' graph-node-group-selected' : ''
+              }${isRelated ? ' graph-node-group-related' : ''}${
+                isMuted ? ' graph-node-group-muted' : ''
+              }`}
+              role="button"
+              tabIndex="0"
+              aria-label={shortName(file)}
+              onClick={() => onSelectFile?.(file)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelectFile?.(file)
+                }
+              }}
+            >
               <circle
                 cx={point.x}
                 cy={point.y}
@@ -231,6 +306,10 @@ function DependencyGraph({ files, analysis, t }) {
           {t('maxNodes')}
         </span>
       </div>
+
+      <div className="graph-interaction-hint">
+        {t('graphHint')}
+      </div>
     </div>
   )
 }
@@ -252,7 +331,19 @@ function App() {
       : 'light'
   })
 
-  const t = (key, variables = {}) => translate(language, key, variables)
+  const t = (key, variables = {}) => {
+    const localValue = INTERACTION_TEXT[language]?.[key]
+
+    if (localValue) {
+      return Object.entries(variables).reduce(
+        (value, [name, replacement]) =>
+          value.replaceAll(`{${name}}`, String(replacement)),
+        localValue,
+      )
+    }
+
+    return translate(language, key, variables)
+  }
 
   const activeTheme =
     themePreference === 'system'
@@ -298,6 +389,7 @@ function App() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState('overview')
   const [focusFile, setFocusFile] = useState('')
+  const [analysisSource, setAnalysisSource] = useState(null)
 
   const sourceFiles = data?.source_files || []
   const pythonAnalysis = data?.python_analysis || {}
@@ -437,19 +529,18 @@ function App() {
           : 'LOW'
     )
 
-  async function analyzeRepository(event) {
-    event.preventDefault()
-
-    if (!uploadFile) {
+  async function analyzeFile(file, source = 'upload') {
+    if (!file) {
       setError(t('chooseZip'))
       return
     }
 
     setLoading(true)
+    setAnalysisSource(source)
     setError('')
 
     const form = new FormData()
-    form.append('file', uploadFile)
+    form.append('file', file)
 
     try {
       const response = await fetch('/api/upload', {
@@ -477,6 +568,42 @@ function App() {
       setError(err.message || t('apiFailed'))
     } finally {
       setLoading(false)
+      setAnalysisSource(null)
+    }
+  }
+
+  async function analyzeRepository(event) {
+    event.preventDefault()
+    await analyzeFile(uploadFile, 'upload')
+  }
+
+  async function runDemo() {
+    if (loading) return
+
+    setLoading(true)
+    setAnalysisSource('demo')
+    setError('')
+
+    try {
+      const response = await fetch('/demo-repo.zip')
+
+      if (!response.ok) {
+        throw new Error(t('requestFailed'))
+      }
+
+      const blob = await response.blob()
+      const demoFile = new File(
+        [blob],
+        'repolens-demo.zip',
+        { type: 'application/zip' },
+      )
+
+      setUploadFile(demoFile)
+      await analyzeFile(demoFile, 'demo')
+    } catch (err) {
+      setError(err.message || t('apiFailed'))
+      setLoading(false)
+      setAnalysisSource(null)
     }
   }
 
@@ -669,7 +796,23 @@ function App() {
                 ? t('analyzing')
                 : t('analyzeRepository')}
             </button>
+
+            <button
+              className="demo-button"
+              disabled={loading}
+              type="button"
+              onClick={runDemo}
+            >
+              {loading && analysisSource === 'demo'
+                ? t('demoLoading')
+                : t('tryDemo')}
+            </button>
           </form>
+
+          <div className="demo-hint">
+            <span>✦</span>
+            {t('demoHint')}
+          </div>
 
           {error && (
             <div className="error-box">
@@ -812,6 +955,9 @@ function App() {
                   <DependencyGraph
                     files={sourceFiles}
                     analysis={pythonAnalysis}
+                    edges={allEdges}
+                    selectedFile={focusFile}
+                    onSelectFile={setFocusFile}
                     t={t}
                   />
                 </div>

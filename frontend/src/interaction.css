@@ -1,0 +1,172 @@
+
+/* RepoLens demo + interactive graph layer */
+
+.upload-form {
+  grid-template-columns: 1fr auto auto;
+}
+
+.demo-button {
+  min-width: 128px;
+  border: 1px solid color-mix(in srgb, #6477ff 46%, transparent);
+  border-radius: 13px;
+  padding: 0 20px;
+  color: var(--text-primary, #e8edf7);
+  background:
+    linear-gradient(180deg, rgba(94, 111, 255, 0.12), rgba(94, 111, 255, 0.05));
+  font-weight: 750;
+  font-size: 12px;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.demo-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #667bff;
+  background:
+    linear-gradient(180deg, rgba(94, 111, 255, 0.2), rgba(94, 111, 255, 0.08));
+}
+
+.demo-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.demo-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px 2px;
+  color: #667285;
+  font-size: 9px;
+}
+
+.demo-hint span {
+  color: #687cff;
+}
+
+.graph-node-group {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 180ms ease;
+}
+
+.graph-node-group .graph-node,
+.graph-node-group .graph-node-label {
+  transition: 180ms ease;
+}
+
+.graph-node-group:hover .graph-node,
+.graph-node-group:focus .graph-node {
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 18px rgba(82, 105, 255, 0.42));
+}
+
+.graph-node-group-selected .graph-node {
+  fill: #202a55;
+  stroke: #8393ff;
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 20px rgba(93, 116, 255, 0.55));
+}
+
+.graph-node-group-related .graph-node {
+  stroke: #32c99c;
+  filter: drop-shadow(0 0 15px rgba(50, 201, 156, 0.3));
+}
+
+.graph-node-group-muted {
+  opacity: 0.28;
+}
+
+.graph-edge {
+  transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease;
+}
+
+.graph-edge-active {
+  opacity: 1;
+  stroke: #7184ff;
+  stroke-width: 2.1;
+}
+
+.graph-edge-muted {
+  opacity: 0.12;
+}
+
+.graph-interaction-hint {
+  margin: 3px 10px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #657184;
+  background: rgba(91, 108, 255, 0.055);
+  border: 1px solid rgba(91, 108, 255, 0.1);
+  font-size: 9px;
+}
+
+.impact-files > div {
+  animation: repolens-impact-in 360ms ease both;
+}
+
+.impact-files > div:nth-child(2) { animation-delay: 55ms; }
+.impact-files > div:nth-child(3) { animation-delay: 110ms; }
+.impact-files > div:nth-child(4) { animation-delay: 165ms; }
+.impact-files > div:nth-child(5) { animation-delay: 220ms; }
+.impact-files > div:nth-child(n+6) { animation-delay: 275ms; }
+
+@keyframes repolens-impact-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+[data-theme='light'] .demo-button {
+  color: #243047;
+  background: rgba(83, 104, 255, 0.06);
+}
+
+[data-theme='light'] .graph-node-group-selected .graph-node {
+  fill: #e8ecff;
+}
+
+[data-theme='light'] .graph-interaction-hint,
+[data-theme='light'] .demo-hint {
+  color: #69758a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-node-group .graph-node,
+  .graph-node-group .graph-node-label,
+  .graph-edge,
+  .impact-files > div,
+  .demo-button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 950px) {
+  .upload-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dropzone {
+    grid-column: 1 / -1;
+  }
+
+  .analyze-button,
+  .demo-button {
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 560px) {
+  .upload-form {
+    grid-template-columns: 1fr;
+  }
+
+  .dropzone {
+    grid-column: auto;
+  }
+}
