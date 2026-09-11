@@ -3,6 +3,36 @@ services:
     build:
       context: ./backend
 
+    environment:
+      REPOLENS_MAX_UPLOAD_BYTES: "26214400"
+      REPOLENS_MAX_ZIP_MEMBERS: "10000"
+      REPOLENS_MAX_TOTAL_UNCOMPRESSED_BYTES: "104857600"
+      REPOLENS_MAX_PYTHON_FILE_BYTES: "2097152"
+      REPOLENS_MAX_COMPRESSION_RATIO: "200"
+      REPOLENS_MAX_ANALYSIS_SECONDS: "15"
+
+    # The backend is intentionally not published to the host. All public
+    # browser traffic goes through the frontend nginx reverse proxy.
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: 1.0
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
     restart: unless-stopped
 
   frontend:
@@ -13,6 +43,14 @@ services:
       - "8080:80"
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    pids_limit: 128
+    mem_limit: 128m
+    cpus: 0.5
 
     restart: unless-stopped

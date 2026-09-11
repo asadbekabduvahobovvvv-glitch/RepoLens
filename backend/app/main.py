@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import os
+import stat
 import time
 import tokenize
 from io import BytesIO
@@ -357,6 +358,36 @@ def _compression_ratio(info: ZipInfo) -> float:
     return info.file_size / max(info.compress_size, 1)
 
 
+def _is_symlink(info: ZipInfo) -> bool:
+    """Return True for Unix-style symbolic-link ZIP entries."""
+    if info.create_system != 3:
+        return False
+
+    mode = info.external_attr >> 16
+    return stat.S_ISLNK(mode)
+
+
+def _validate_member_metadata(info: ZipInfo, normalized: str) -> None:
+    """Reject archive entry types RepoLens does not need to inspect."""
+    # Traditional PKZIP encryption flag. RepoLens intentionally does not
+    # accept password-protected content because it cannot be inspected
+    # deterministically before analysis.
+    if info.flag_bits & 0x1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Encrypted ZIP member is not supported: {normalized}",
+        )
+
+    # RepoLens never extracts archives, but rejecting symlinks keeps archive
+    # semantics simple and prevents a future extraction refactor from turning
+    # a harmless metadata entry into a filesystem traversal primitive.
+    if _is_symlink(info):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Symbolic-link ZIP member is not supported: {normalized}",
+        )
+
+
 async def _measure_upload(file: UploadFile) -> int:
     """
     Read the uploaded file in bounded chunks to determine its size.
@@ -421,6 +452,7 @@ def _inspect_archive(
 
     for info in infos:
         normalized = _validate_member_name(info.filename)
+        _validate_member_metadata(info, normalized)
 
         # Reject ambiguous duplicate paths.
         if normalized in seen_names:
@@ -733,10 +765,10 @@ async def upload_file(
             "source_file_count": len(source_files),
             "source_files": source_files,
             "python_analysis": python_analysis,
-        "dependency_graph": dependency_graph,
-        "critical_files": critical_file_ranking,
-        "circular_dependencies": circular_dependencies,
-        "impact_analysis": impact_analysis,
+            "dependency_graph": dependency_graph,
+            "critical_files": critical_file_ranking,
+            "circular_dependencies": circular_dependencies,
+            "impact_analysis": impact_analysis,
             "files": filenames,
             "tree": tree,
         }
