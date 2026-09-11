@@ -110,7 +110,7 @@ function MetricCard({ label, value, detail }) {
   )
 }
 
-function DependencyGraph({ files, analysis }) {
+function DependencyGraph({ files, analysis, t }) {
   const nodes = (files || []).slice(0, 10)
   const allEdges = buildEdges(files, analysis)
   const edges = allEdges.filter(
@@ -143,7 +143,7 @@ function DependencyGraph({ files, analysis }) {
   if (!nodes.length) {
     return (
       <div className="empty-state">
-        Upload a repository to generate an architecture map.
+        {t('architectureEmpty')}
       </div>
     )
   }
@@ -154,7 +154,7 @@ function DependencyGraph({ files, analysis }) {
         viewBox={`0 0 ${width} ${height}`}
         className="graph-svg"
         role="img"
-        aria-label="Repository dependency graph"
+        aria-label={t('graphAria')}
       >
         <defs>
           <marker
@@ -220,13 +220,13 @@ function DependencyGraph({ files, analysis }) {
       <div className="graph-legend">
         <span>
           <i className="legend-dot" />
-          Source file
+          {t('sourceFile')}
         </span>
         <span>
-          → import dependency
+          → {t('importDependency')}
         </span>
         <span>
-          Showing max 10 nodes
+          {t('maxNodes')}
         </span>
       </div>
     </div>
@@ -240,7 +240,7 @@ function App() {
 
   const [languageOpen, setLanguageOpen] = useState(false)
 
-  const t = (key) => translate(language, key)
+  const t = (key, variables = {}) => translate(language, key, variables)
 
   const changeLanguage = (nextLanguage) => {
     setLanguage(nextLanguage)
@@ -352,7 +352,7 @@ function App() {
     event.preventDefault()
 
     if (!uploadFile) {
-      setError('Choose a ZIP repository first.')
+      setError(t('chooseZip'))
       return
     }
 
@@ -373,7 +373,7 @@ function App() {
       if (!response.ok) {
         throw new Error(
           result.detail ||
-          'Repository analysis failed.',
+          t('requestFailed'),
         )
       }
 
@@ -385,7 +385,7 @@ function App() {
       setFocusFile(firstFile)
       setTab('overview')
     } catch (err) {
-      setError(err.message || 'Unable to reach RepoLens API.')
+      setError(err.message || t('apiFailed'))
     } finally {
       setLoading(false)
     }
@@ -457,25 +457,24 @@ function App() {
         <section className="hero">
           <div>
             <div className="eyebrow">
-              CODEBASE INTELLIGENCE
+              {t('codebaseIntelligence')}
             </div>
 
             <h1>
-              Understand a repository
-              <span> before you touch it.</span>
+              {t('heroMain')}
+              <span>{t('heroAccent')}</span>
             </h1>
 
             <p>
-              RepoLens turns unfamiliar source code into a visual
-              architecture map, dependency model and change-impact report.
+              {t('heroDescription')}
             </p>
           </div>
 
           <div className="hero-badge">
-            <span>SECURE PIPELINE</span>
-            <strong>AST + dependency intelligence</strong>
+            <span>{t('securePipeline')}</span>
+            <strong>{t('astDependency')}</strong>
             <small>
-              Untrusted ZIP inspection · resource limits · safe parsing
+              {t('securePipelineText')}
             </small>
           </div>
         </section>
@@ -501,13 +500,15 @@ function App() {
                 <strong>
                   {uploadFile
                     ? uploadFile.name
-                    : 'Drop a repository ZIP here'}
+                    : t('dropZip')}
                 </strong>
 
                 <span>
                   {uploadFile
-                    ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB selected`
-                    : 'or click to browse from your computer'}
+                    ? t('selectedMb', {
+                        size: (uploadFile.size / 1024 / 1024).toFixed(2),
+                      })
+                    : t('browseComputer')}
                 </span>
               </div>
             </label>
@@ -518,14 +519,14 @@ function App() {
               type="submit"
             >
               {loading
-                ? 'Analyzing…'
-                : 'Analyze repository'}
+                ? t('analyzing')
+                : t('analyzeRepository')}
             </button>
           </form>
 
           {error && (
             <div className="error-box">
-              <strong>Analysis failed</strong>
+              <strong>{t('analysisFailed')}</strong>
               <span>{error}</span>
             </div>
           )}
@@ -535,33 +536,33 @@ function App() {
           <section className="pre-analysis">
             <div className="pre-card">
               <span>01</span>
-              <strong>Inspect</strong>
+              <strong>{t('inspect')}</strong>
               <p>
-                Validate the archive and safely inspect repository metadata.
+                {t('inspectText')}
               </p>
             </div>
 
             <div className="pre-card">
               <span>02</span>
-              <strong>Understand</strong>
+              <strong>{t('understand')}</strong>
               <p>
-                Parse Python AST, functions, classes and imports.
+                {t('understandText')}
               </p>
             </div>
 
             <div className="pre-card">
               <span>03</span>
-              <strong>Map</strong>
+              <strong>{t('map')}</strong>
               <p>
-                Visualize dependency relationships across source files.
+                {t('mapText')}
               </p>
             </div>
 
             <div className="pre-card">
               <span>04</span>
-              <strong>Predict impact</strong>
+              <strong>{t('predictImpact')}</strong>
               <p>
-                Estimate what may be affected before changing a file.
+                {t('predictImpactText')}
               </p>
             </div>
           </section>
@@ -570,52 +571,52 @@ function App() {
             <section className="result-header">
               <div>
                 <span className="result-label">
-                  ANALYSIS COMPLETE
+                  {t('analysisComplete')}
                 </span>
 
                 <h2>
                   {data.filename?.replace(/\.zip$/i, '') ||
-                    'Repository'}
+                    t('repository')}
                 </h2>
               </div>
 
               <div className="result-health">
                 <i />
-                Repository parsed successfully
+                {t('parsedSuccessfully')}
               </div>
             </section>
 
             <section className="metrics">
               <MetricCard
-                label="Source files"
+                label={t('sourceFiles')}
                 value={data.source_file_count ?? sourceFiles.length}
-                detail={`${data.total_items ?? data.files?.length ?? 0} total archive items`}
+                detail={t('totalItems', { count: data.total_items ?? data.files?.length ?? 0 })}
               />
 
               <MetricCard
-                label="Functions"
+                label={t('functions')}
                 value={stats.functions}
-                detail="Detected through AST"
+                detail={t('astDetected')}
               />
 
               <MetricCard
-                label="Classes"
+                label={t('classes')}
                 value={stats.classes}
-                detail="Python structures"
+                detail={t('pythonStructures')}
               />
 
               <MetricCard
-                label="Dependencies"
+                label={t('dependencies')}
                 value={allEdges.length}
-                detail={`${stats.imports} import statements`}
+                detail={t('importStatements', { count: stats.imports })}
               />
             </section>
 
             <nav className="tabs">
               {[
-                ['overview', 'Overview'],
-                ['code', 'Code intelligence'],
-                ['impact', 'Impact analysis'],
+                ['overview', t('overview')],
+                ['code', t('codeIntelligence')],
+                ['impact', t('impactAnalysis')],
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -633,12 +634,12 @@ function App() {
                 <div className="panel tree-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>STRUCTURE</span>
-                      <h3>Repository tree</h3>
+                      <span>{t('structure')}</span>
+                      <h3>{t('repositoryTree')}</h3>
                     </div>
 
                     <small>
-                      {data.files?.length || 0} items
+                      {t('items', { count: data.files?.length || 0 })}
                     </small>
                   </div>
 
@@ -650,26 +651,27 @@ function App() {
                 <div className="panel graph-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>ARCHITECTURE</span>
-                      <h3>Dependency graph</h3>
+                      <span>{t('architecture')}</span>
+                      <h3>{t('dependencyGraph')}</h3>
                     </div>
 
                     <small>
-                      {allEdges.length} relationships
+                      {t('relationships', { count: allEdges.length })}
                     </small>
                   </div>
 
                   <DependencyGraph
                     files={sourceFiles}
                     analysis={pythonAnalysis}
+                    t={t}
                   />
                 </div>
 
                 <div className="panel language-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>STACK</span>
-                      <h3>Languages</h3>
+                      <span>{t('stack')}</span>
+                      <h3>{t('languages')}</h3>
                     </div>
                   </div>
 
@@ -683,8 +685,7 @@ function App() {
                           <div>
                             <strong>{language.name}</strong>
                             <span>
-                              {language.count} file
-                              {language.count !== 1 ? 's' : ''}
+                              {t('fileCount', { count: language.count })}
                             </span>
                           </div>
 
@@ -701,7 +702,7 @@ function App() {
                       ))
                     ) : (
                       <div className="empty-state">
-                        No source languages detected.
+                        {t('noLanguages')}
                       </div>
                     )}
                   </div>
@@ -710,8 +711,8 @@ function App() {
                 <div className="panel security-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>PIPELINE</span>
-                      <h3>Security posture</h3>
+                      <span>{t('pipeline')}</span>
+                      <h3>{t('securityPosture')}</h3>
                     </div>
                   </div>
 
@@ -719,32 +720,32 @@ function App() {
                     <div>
                       <i>✓</i>
                       <span>
-                        <strong>Archive validation</strong>
-                        ZIP input validated before analysis
+                        <strong>{t('archiveValidation')}</strong>
+                        {t('archiveValidationText')}
                       </span>
                     </div>
 
                     <div>
                       <i>✓</i>
                       <span>
-                        <strong>Safe source parsing</strong>
-                        AST parsing without executing repository code
+                        <strong>{t('safeParsing')}</strong>
+                        {t('safeParsingText')}
                       </span>
                     </div>
 
                     <div>
                       <i>✓</i>
                       <span>
-                        <strong>Dependency filtering</strong>
-                        Vendor and cache directories excluded
+                        <strong>{t('dependencyFiltering')}</strong>
+                        {t('dependencyFilteringText')}
                       </span>
                     </div>
 
                     <div>
                       <i>✓</i>
                       <span>
-                        <strong>Failure isolation</strong>
-                        Malformed Python files do not crash analysis
+                        <strong>{t('failureIsolation')}</strong>
+                        {t('failureIsolationText')}
                       </span>
                     </div>
                   </div>
@@ -757,8 +758,8 @@ function App() {
                 <div className="panel file-list-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>SOURCE</span>
-                      <h3>Analyzed files</h3>
+                      <span>{t('source')}</span>
+                      <h3>{t('analyzedFiles')}</h3>
                     </div>
                   </div>
 
@@ -784,21 +785,21 @@ function App() {
                 <div className="panel intelligence-panel">
                   <div className="panel-heading">
                     <div>
-                      <span>AST INTELLIGENCE</span>
+                      <span>{t('astIntelligence')}</span>
                       <h3>{shortName(activeFile)}</h3>
                     </div>
 
                     <small>
                       {pythonAnalysis[activeFile]?.parse_error
-                        ? 'Parse warning'
-                        : 'Parsed'}
+                        ? t('parseWarning')
+                        : t('parsed')}
                     </small>
                   </div>
 
                   {pythonAnalysis[activeFile] ? (
                     <div className="intelligence-grid">
                       <div>
-                        <span>Functions</span>
+                        <span>{t('functions')}</span>
                         {(pythonAnalysis[activeFile].functions || [])
                           .length ? (
                           <ul>
@@ -811,12 +812,12 @@ function App() {
                             ))}
                           </ul>
                         ) : (
-                          <p>No functions detected.</p>
+                          <p>{t('noFunctions')}</p>
                         )}
                       </div>
 
                       <div>
-                        <span>Classes</span>
+                        <span>{t('classes')}</span>
                         {(pythonAnalysis[activeFile].classes || [])
                           .length ? (
                           <ul>
@@ -829,12 +830,12 @@ function App() {
                             ))}
                           </ul>
                         ) : (
-                          <p>No classes detected.</p>
+                          <p>{t('noClasses')}</p>
                         )}
                       </div>
 
                       <div className="imports-block">
-                        <span>Imports</span>
+                        <span>{t('imports')}</span>
 
                         {(pythonAnalysis[activeFile].imports || [])
                           .length ? (
@@ -846,14 +847,13 @@ function App() {
                             ))}
                           </div>
                         ) : (
-                          <p>No imports detected.</p>
+                          <p>{t('noImports')}</p>
                         )}
                       </div>
                     </div>
                   ) : (
                     <div className="empty-state">
-                      Detailed AST analysis is currently available
-                      for Python source files.
+                      {t('pythonOnly')}
                     </div>
                   )}
                 </div>
@@ -865,8 +865,8 @@ function App() {
                 <div className="panel impact-selector">
                   <div className="panel-heading">
                     <div>
-                      <span>CHANGE SIMULATION</span>
-                      <h3>Select a source file</h3>
+                      <span>{t('changeSimulation')}</span>
+                      <h3>{t('selectSourceFile')}</h3>
                     </div>
                   </div>
 
@@ -887,21 +887,20 @@ function App() {
                   </select>
 
                   <div className={`risk-box risk-${risk.toLowerCase()}`}>
-                    <span>Change risk</span>
-                    <strong>{risk}</strong>
+                    <span>{t('changeRisk')}</span>
+                    <strong>{t(`risk${risk}`)}</strong>
                     <small>
-                      {impactedBy.length} file
-                      {impactedBy.length !== 1 ? 's' : ''} in full blast radius
+                      {t('blastCount', { count: impactedBy.length })}
                     </small>
                   </div>
 
                   <div className="critical-mini">
                     <span className="advanced-label">
-                      CRITICAL FILES
+                      {t('criticalFiles')}
                     </span>
 
                     <strong>
-                      Most influential modules
+                      {t('influentialModules')}
                     </strong>
 
                     {criticalFiles
@@ -918,9 +917,10 @@ function App() {
                               {shortName(item.file)}
                             </strong>
                             <small>
-                              Impact: {item.total_impact}
-                              {' · '}
-                              Direct: {item.direct_dependents}
+                              {t('impactDirect', {
+                                impact: item.total_impact,
+                                direct: item.direct_dependents,
+                              })}
                             </small>
                           </div>
 
@@ -946,13 +946,13 @@ function App() {
 
                     <div>
                       <strong>
-                        Architecture check
+                        {t('architectureCheck')}
                       </strong>
 
                       <small>
                         {circularDependencies.length
-                          ? `${circularDependencies.length} circular dependency path(s) detected`
-                          : 'No circular dependencies detected'}
+                          ? t('circularFound', { count: circularDependencies.length })
+                          : t('noCircular')}
                       </small>
                     </div>
                   </div>
@@ -961,9 +961,9 @@ function App() {
                 <div className="panel impact-report">
                   <div className="panel-heading">
                     <div>
-                      <span>BLAST RADIUS</span>
+                      <span>{t('blastRadius')}</span>
                       <h3>
-                        If {shortName(activeFile)} changes…
+                        {t('ifChanges', { file: shortName(activeFile) })}
                       </h3>
                     </div>
                   </div>
@@ -977,26 +977,20 @@ function App() {
                             <strong>{shortName(file)}</strong>
                             <small>{file}</small>
                           </div>
-                          <b>AFFECTED</b>
+                          <b>{t('affected')}</b>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="empty-state">
-                      No direct incoming dependency was detected for
-                      this file. Its current blast radius appears low.
+                      {t('noDependents')}
                     </div>
                   )}
 
                   <div className="impact-note">
-                    <strong>How RepoLens estimates this</strong>
+                    <strong>{t('howEstimated')}</strong>
                     <p>
-                      RepoLens traces import relationships and follows
-                      reverse dependencies transitively. This means the
-                      blast radius can include files several dependency
-                      levels away, not only direct imports. Future versions
-                      can extend this with function-level call graphs and
-                      git-diff analysis.
+                      {t('howEstimatedText')}
                     </p>
                   </div>
                 </div>
@@ -1009,7 +1003,7 @@ function App() {
       <footer>
         <span>RepoLens</span>
         <p>
-          Built to make unfamiliar codebases easier and safer to change.
+          {t('footerText')}
         </p>
         <b>FastAPI · React · AST · Docker</b>
       </footer>
