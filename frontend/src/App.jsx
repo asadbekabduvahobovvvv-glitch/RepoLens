@@ -239,11 +239,30 @@ function App() {
 
   const sourceFiles = data?.source_files || []
   const pythonAnalysis = data?.python_analysis || {}
+  const criticalFiles = data?.critical_files || []
+  const circularDependencies = data?.circular_dependencies || []
+  const impactAnalysis = data?.impact_analysis || {}
 
-  const allEdges = useMemo(
-    () => buildEdges(sourceFiles, pythonAnalysis),
-    [sourceFiles, pythonAnalysis],
-  )
+  const allEdges = useMemo(() => {
+    const backendGraph = data?.dependency_graph || {}
+
+    const backendEdges = Object.entries(
+      backendGraph
+    ).flatMap(([source, targets]) =>
+      (targets || []).map((target) => ({
+        key: `${source}->${target}`,
+        source,
+        target,
+      }))
+    )
+
+    return backendEdges.length
+      ? backendEdges
+      : buildEdges(
+          sourceFiles,
+          pythonAnalysis
+        )
+  }, [data, sourceFiles, pythonAnalysis])
 
   const stats = useMemo(() => {
     let functions = 0
@@ -290,16 +309,26 @@ function App() {
     sourceFiles[0] ||
     ''
 
-  const impactedBy = allEdges
-    .filter((edge) => edge.target === activeFile)
-    .map((edge) => edge.source)
+  const activeImpact =
+    impactAnalysis[activeFile] || {}
+
+  const impactedBy =
+    activeImpact.affected_files ||
+    allEdges
+      .filter(
+        (edge) => edge.target === activeFile
+      )
+      .map((edge) => edge.source)
 
   const risk =
-    impactedBy.length >= 4
-      ? 'HIGH'
-      : impactedBy.length >= 2
-        ? 'MEDIUM'
-        : 'LOW'
+    activeImpact.risk_level ||
+    (
+      impactedBy.length >= 5
+        ? 'HIGH'
+        : impactedBy.length >= 2
+          ? 'MEDIUM'
+          : 'LOW'
+    )
 
   async function analyzeRepository(event) {
     event.preventDefault()
@@ -809,9 +838,71 @@ function App() {
                     <span>Change risk</span>
                     <strong>{risk}</strong>
                     <small>
-                      {impactedBy.length} direct dependent
-                      {impactedBy.length !== 1 ? 's' : ''} detected
+                      {impactedBy.length} file
+                      {impactedBy.length !== 1 ? 's' : ''} in full blast radius
                     </small>
+                  </div>
+
+                  <div className="critical-mini">
+                    <span className="advanced-label">
+                      CRITICAL FILES
+                    </span>
+
+                    <strong>
+                      Most influential modules
+                    </strong>
+
+                    {criticalFiles
+                      .slice(0, 3)
+                      .map((item, index) => (
+                        <div
+                          className="critical-file-row"
+                          key={item.file}
+                        >
+                          <b>#{index + 1}</b>
+
+                          <div>
+                            <strong>
+                              {shortName(item.file)}
+                            </strong>
+                            <small>
+                              Impact: {item.total_impact}
+                              {' · '}
+                              Direct: {item.direct_dependents}
+                            </small>
+                          </div>
+
+                          <span>
+                            {item.score}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div
+                    className={
+                      circularDependencies.length
+                        ? 'architecture-warning architecture-danger'
+                        : 'architecture-warning architecture-safe'
+                    }
+                  >
+                    <span>
+                      {circularDependencies.length
+                        ? '⚠'
+                        : '✓'}
+                    </span>
+
+                    <div>
+                      <strong>
+                        Architecture check
+                      </strong>
+
+                      <small>
+                        {circularDependencies.length
+                          ? `${circularDependencies.length} circular dependency path(s) detected`
+                          : 'No circular dependencies detected'}
+                      </small>
+                    </div>
                   </div>
                 </div>
 
@@ -848,11 +939,12 @@ function App() {
                   <div className="impact-note">
                     <strong>How RepoLens estimates this</strong>
                     <p>
-                      The current model traces import relationships
-                      between source files and calculates direct reverse
-                      dependencies. Later versions can extend this to
-                      transitive dependencies, call graphs and git-diff
-                      analysis.
+                      RepoLens traces import relationships and follows
+                      reverse dependencies transitively. This means the
+                      blast radius can include files several dependency
+                      levels away, not only direct imports. Future versions
+                      can extend this with function-level call graphs and
+                      git-diff analysis.
                     </p>
                   </div>
                 </div>

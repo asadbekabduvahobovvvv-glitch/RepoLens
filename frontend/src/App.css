@@ -893,3 +893,115 @@ footer b {
     text-align: center;
   }
 }
+
+.critical-mini {
+  margin: 18px;
+  padding: 16px;
+  border: 1px solid #202733;
+  border-radius: 13px;
+  background: rgba(13, 17, 24, 0.8);
+}
+
+.advanced-label {
+  color: #627cff;
+  letter-spacing: 0.12em;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.critical-mini > strong {
+  display: block;
+  margin: 6px 0 12px;
+  font-size: 11px;
+}
+
+.critical-file-row {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 28px 1fr 35px;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid #1d2430;
+}
+
+.critical-file-row > b {
+  color: #6679f5;
+  font-size: 9px;
+}
+
+.critical-file-row > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.critical-file-row strong {
+  font-size: 10px;
+  color: #cbd3df;
+}
+
+.critical-file-row small {
+  margin-top: 3px;
+  font-size: 8px;
+  color: #657184;
+}
+
+.critical-file-row > span {
+  text-align: right;
+  color: #8391a7;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.architecture-warning {
+  margin: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.architecture-warning > span {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.architecture-warning > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.architecture-warning strong {
+  font-size: 10px;
+}
+
+.architecture-warning small {
+  margin-top: 3px;
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.architecture-safe {
+  color: #3ed49c;
+  border-color: rgba(62, 212, 156, 0.25);
+  background: rgba(62, 212, 156, 0.05);
+}
+
+.architecture-safe > span {
+  background: rgba(62, 212, 156, 0.1);
+}
+
+.architecture-danger {
+  color: #ff6978;
+  border-color: rgba(255, 105, 120, 0.25);
+  background: rgba(255, 105, 120, 0.05);
+}
+
+.architecture-danger > span {
+  background: rgba(255, 105, 120, 0.1);
+}
