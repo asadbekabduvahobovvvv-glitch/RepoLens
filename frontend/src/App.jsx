@@ -608,7 +608,11 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div
+      className="app"
+      lang={language}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+    >
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark brand-logo">
