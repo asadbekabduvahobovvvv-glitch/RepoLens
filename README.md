@@ -297,7 +297,7 @@ The interface also includes:
 - interactive graph highlighting
 - impact animations
 - dark / light / system themes
-- English / Uzbek / German / Russian UI
+- English / Uzbek / German / Russian / Chinese / Korean / Arabic UI
 
 ---
 
