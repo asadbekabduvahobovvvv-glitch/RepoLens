@@ -396,3 +396,39 @@ Built by **Asadbek**.
 ## 📄 License
 
 This project is licensed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+
+---
+
+## 🌐 Live Demo
+
+**RepoLens by CYBERTEZ**
+
+https://analyzezip-asadbek-project.up.railway.app
+
+Try the built-in demo repository or upload your own `.zip` repository.
+
+---
+
+## 📸 Screenshots
+
+### Landing Page
+
+![RepoLens Landing Page](docs/screenshots/landing.png)
+
+### Repository Overview
+
+![Repository Overview](docs/screenshots/overview.png)
+
+### Guided Onboarding
+
+![Start Here](docs/screenshots/start-here.png)
+
+### Code Intelligence
+
+![Code Intelligence](docs/screenshots/code-intelligence.png)
+
+### Change Impact Analysis
+
+![Impact Analysis](docs/screenshots/impact-analysis.png)
+
+
