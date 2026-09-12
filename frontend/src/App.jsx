@@ -611,10 +611,12 @@ function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark">R</div>
+          <div className="brand-mark brand-logo">
+  <img src="/cybertez-logo.png" alt="CYBERTEZ" />
+</div>
           <div>
-            <strong>RepoLens</strong>
-            <span>{t("repositoryIntelligence")}</span>
+            <strong>CYBERTEZ</strong>
+            <span>RepoLens</span>
           </div>
         </div>
 
